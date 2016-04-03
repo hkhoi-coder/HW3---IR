@@ -4,7 +4,7 @@ package model;
  *
  * @author hkhoi
  */
-public class Record {
+public class Record implements Comparable<Record>{
    
     private final int termId;
    
@@ -26,5 +26,10 @@ public class Record {
     @Override
     public String toString() {
         return termId + " " + docId;
+    }
+
+    @Override
+    public int compareTo(Record o) {
+        return termId - o.termId;
     }
 }
