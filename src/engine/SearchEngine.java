@@ -79,7 +79,7 @@ public class SearchEngine {
         System.out.println("> STATUS: Ready to start!");
     }
 
-    public void BSBConstruction() {
+    private void BSBConstruction() {
 
         System.out.println("> STATUS: Buidling BSB, please wait...");
 
@@ -129,7 +129,7 @@ public class SearchEngine {
         System.out.println("> STATUS: Done, number of blocks: " + blockCount + ", buffer = " + BUFFER);
     }
 
-    public void SPIMIConstruction() {
+    private void SPIMIConstruction() {
         System.out.println("> STATUS: Buidling SPIMI, please wait...");
 
         for (int docId = 0; docId < dataFiles.length; ++docId) {
@@ -201,15 +201,6 @@ public class SearchEngine {
         System.out.println("> STATUS: Done, number of stopwords: " + stopWordSet.size());
     }
 
-    public HashSet<String> getStopWordSet() {
-        return stopWordSet;
-    }
-
-    public File[] getDataFiles() {
-        return dataFiles;
-    }
-
-    /* TEST */
     private int getTermId(String normalized) {
         if (termIdMap.containsKey(normalized)) {
             return termIdMap.get(normalized);
@@ -412,10 +403,57 @@ public class SearchEngine {
     }
 
     private List<String> spimiQuery(String singleTerm) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        System.out.println("> STATUS: Start SPIMI query with term: " + singleTerm);
+        if (invertedIndiceSPIMI == null) {
+            System.out.println("> STATUS: SPIMI cache is empty, building...");
+            try {
+                invertedIndiceSPIMI = new HashMap<>();
+                File spimiFile = new File(MERGED_SPIMI_FILE);
+                if (!spimiFile.exists()) {
+                    System.out.println("> STATUS: SPIMI merged file is empty, building...");
+                    SPIMIConstruction();
+                }
+
+                QuickScan scan = new QuickScan(new FileInputStream(MERGED_SPIMI_FILE));
+                boolean end = false;
+
+                while (!end) {
+                    String curLine = scan.nextLine();
+                    if (curLine == null) {
+                        end = true;
+                    } else {
+                        String[] tokens = curLine.split(REGEX_SPIMI_POSTING);
+                        String term = tokens[0];
+
+                        if (!invertedIndiceSPIMI.containsKey(term)) {
+                            invertedIndiceSPIMI.put(term, new BitSet());
+                        }
+                        for (int j = 1; j < tokens.length; ++j) {
+                            try {
+                                int docId = Integer.parseInt(tokens[j]);
+                                invertedIndiceSPIMI.get(term).set(docId);
+                            } catch (NumberFormatException e) {
+                                // Ignore
+                            }
+                        }
+                    }
+                }
+            } catch (FileNotFoundException ex) {
+                Logger.getLogger(SearchEngine.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (IOException ex) {
+                Logger.getLogger(SearchEngine.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        BitSet result = invertedIndiceSPIMI.get(singleTerm);
+        System.out.println("> STATUS: Done querying!");
+        return getFileListFromBitset(result);
     }
 
     private List<String> getFileListFromBitset(BitSet bs) {
+        if (bs == null) {
+            return null;
+        }
+
         List<String> list = new ArrayList<>();
 
         for (int i = 0; i < bs.length(); ++i) {
@@ -439,12 +477,16 @@ public class SearchEngine {
                 } else {
                     int id = scan.nextInt();
                     termIdMap.put(term, id);
+
                 }
             }
         } catch (FileNotFoundException ex) {
-            Logger.getLogger(SearchEngine.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(SearchEngine.class
+                    .getName()).log(Level.SEVERE, null, ex);
+
         } catch (IOException ex) {
-            Logger.getLogger(SearchEngine.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(SearchEngine.class
+                    .getName()).log(Level.SEVERE, null, ex);
         }
     }
 }
