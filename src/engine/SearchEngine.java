@@ -32,7 +32,7 @@ public class SearchEngine {
     private static final String REGEX = "[^A-Za-z']";
 
     private static final String REGEX_POSTING = "[^0-9']";
-    
+
     private static final String REGEX_SPIMI_POSTING = "[^a-z0-9']";
 
     private static int termIdCount = 0;
@@ -48,7 +48,7 @@ public class SearchEngine {
     private static final String SPIMI_BLOCK_PREFIX = "FILE_SPIMI_RAW_";
 
     private static final String MERGED_FILE = "MERGED_FILE";
-    
+
     private static final String MERGED_SPIMI_FILE = "MERGEDS_SPIMI_FILE";
 
     private static final String TERM_ID_MAP_FILE = "TERM_ID_MAP";
@@ -64,6 +64,10 @@ public class SearchEngine {
     private final HashMap<String, Integer> termIdMap;
 
     private final File[] dataFiles;
+
+    private static HashMap<Integer, BitSet> invertedIndiceBSB;
+
+    private static HashMap<String, BitSet> invertedIndiceSPIMI;
 
     public SearchEngine() {
         System.out.println("> STATUS: Initializing engine");
@@ -339,5 +343,108 @@ public class SearchEngine {
         }
         MiscUtil.exportSPIMIMap(invertedIndice, MERGED_SPIMI_FILE);
         System.out.println("> STATUS: Merged!, Dumped to file: " + MERGED_SPIMI_FILE);
+    }
+
+    public List<String> invertedIndiceQuery(String singleTerm, boolean bsbMode) {
+        if (bsbMode) {
+            return bsbQuery(singleTerm);
+        } else {
+            return spimiQuery(singleTerm);
+        }
+    }
+
+    private List<String> bsbQuery(String singleTerm) {
+        System.out.println("> STATUS: Start BSB Query with term: " + singleTerm);
+        if (invertedIndiceBSB == null) {
+            System.out.println("> STATUS: inverted index cache is empty, initializing...");
+            try {
+                invertedIndiceBSB = new HashMap<>();
+                File merged = new File(MERGED_FILE);
+                if (!merged.exists()) {
+                    System.out.println("> STATUS: cache file is not built, start bulding...");
+                    BSBConstruction();
+                }
+
+                QuickScan scan = new QuickScan(new FileInputStream(MERGED_FILE));
+                boolean end = false;
+
+                while (!end) {
+                    String curLine = scan.nextLine();
+                    if (curLine == null) {
+                        end = true;
+                    } else {
+                        String[] tokens = curLine.split(REGEX_POSTING);
+                        int termId = Integer.parseInt(tokens[0]);
+                        if (!invertedIndiceBSB.containsKey(termId)) {
+                            invertedIndiceBSB.put(termId, new BitSet());
+                        }
+
+                        for (int j = 1; j < tokens.length; ++j) {
+                            try {
+                                int docId = Integer.parseInt(tokens[j]);
+                                invertedIndiceBSB.get(termId).set(docId);
+                            } catch (NumberFormatException e) {
+                                // Ignore
+                            }
+                        }
+                    }
+                }
+            } catch (FileNotFoundException ex) {
+                Logger.getLogger(SearchEngine.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (IOException ex) {
+                Logger.getLogger(SearchEngine.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+
+        if (termIdMap.isEmpty()) {
+            System.out.println("> STATUS: TermId map is empty, loading...");
+            loadTermIdMap();
+        }
+
+        Integer termId = termIdMap.get(singleTerm);
+        System.out.println("> STATUS: Done querying");
+        if (termId == null) {
+            return null;
+        } else {
+            BitSet result = invertedIndiceBSB.get(termId);
+            return getFileListFromBitset(result);
+        }
+    }
+
+    private List<String> spimiQuery(String singleTerm) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    private List<String> getFileListFromBitset(BitSet bs) {
+        List<String> list = new ArrayList<>();
+
+        for (int i = 0; i < bs.length(); ++i) {
+            if (bs.get(i)) {
+                list.add(dataFiles[i].getName());
+            }
+        }
+
+        return list;
+    }
+
+    private void loadTermIdMap() {
+        try {
+            QuickScan scan = new QuickScan(new FileInputStream(TERM_ID_MAP_FILE));
+            boolean end = false;
+            while (!end) {
+                String term = scan.next();
+
+                if (term == null) {
+                    end = true;
+                } else {
+                    int id = scan.nextInt();
+                    termIdMap.put(term, id);
+                }
+            }
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(SearchEngine.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(SearchEngine.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 }
