@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.util.BitSet;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Level;
@@ -30,6 +31,16 @@ public class MiscUtil {
     public static void exportMap(TreeMap<Integer, BitSet> invertedIndice, String fileName) {
         try (PrintWriter out = new PrintWriter(new FileOutputStream(fileName), false)) {
             for (Map.Entry<Integer, BitSet> it : invertedIndice.entrySet()) {
+                out.println(it.getKey() + " " + it.getValue());
+            }
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(SearchEngine.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    public static void exportSPIMIMap(HashMap<String, BitSet> invertedIndice, String fileName) {
+        try (PrintWriter out = new PrintWriter(new FileOutputStream(fileName), false)) {
+            for (Map.Entry<String, BitSet> it : invertedIndice.entrySet()) {
                 out.println(it.getKey() + " " + it.getValue());
             }
         } catch (FileNotFoundException ex) {

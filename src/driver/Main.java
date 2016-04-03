@@ -10,6 +10,7 @@ import java.io.IOException;
 public class Main {
     public static void main(String[] args) throws FileNotFoundException, IOException {
         SearchEngine engine = new SearchEngine();
-        engine.BSBConstruction();
+//        engine.BSBConstruction();
+        engine.SPIMIConstruction();
     }
 }

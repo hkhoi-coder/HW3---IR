@@ -4,13 +4,13 @@ package model;
  *
  * @author hkhoi
  */
-public class Record implements Comparable<Record>{
+public class TermIdRecord implements Comparable<TermIdRecord>{
    
     private final int termId;
    
     private final int docId;
 
-    public Record(int termId, int docId) {
+    public TermIdRecord(int termId, int docId) {
         this.termId = termId;
         this.docId = docId;
     }
@@ -29,7 +29,7 @@ public class Record implements Comparable<Record>{
     }
 
     @Override
-    public int compareTo(Record o) {
+    public int compareTo(TermIdRecord o) {
         return termId - o.termId;
     }
 }
